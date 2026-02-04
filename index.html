@@ -112,36 +112,63 @@
             });
             document.getElementById('grandTotal').innerText = Math.round(subtotal * 1.05).toLocaleString();
         }
-
         async function saveToNotion() {
             const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = "連動中...";
+            const originalText = saveBtn.innerText;
+    
+            // 1. 檢查必填欄位
+            const clientName = document.getElementById('clientName').value;
+            if (!clientName) {
+                alert("請輸入客戶公司名稱後再儲存");
+                return;
+            }
+
+            saveBtn.innerText = "正在傳送至 Notion...";
             saveBtn.disabled = true;
 
+            // 2. 準備資料 (加上 console.log 方便你檢查)
             const data = {
-                company: document.getElementById('clientName').value,
+                company: clientName,
                 date: document.getElementById('currentDate').value,
                 total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
                 id: document.getElementById('quoteId').value,
-                note: document.getElementById('quoteNote').value  // 這是新增的連動欄位
+                note: document.getElementById('quoteNote').value
             };
+    
+            console.log("準備傳送的資料：", data);
 
-            const webhookUrl = "https://eo91z86kquxo2dl.m.pipedream.net";
+            const webhookUrl = "你的_PIPEDREAM_URL_貼在這裡"; // <--- 請確認這裡有換成正確網址
 
             try {
+                // 3. 發送請求 (恢復標準模式，刪除 no-cors)
                 const response = await fetch(webhookUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (response.ok) alert('✅ 報價與備註已同步至 Notion！');
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+                console.log("伺服器回應狀態：", response.status);
+
+                if (response.ok) {
+                    alert('✅ 儲存成功！請檢查 Notion 資料庫。');
+                } else {
+                    const errorText = await response.text();
+                    console.error("錯誤內容：", errorText);
+                    alert('❌ 儲存失敗，伺服器回傳錯誤。請查看控制台 (F12)。');
+                }
             } catch (error) {
-                alert('❌ 儲存失敗');
-            } finally {
-                saveBtn.innerText = "儲存至 Notion";
-                saveBtn.disabled = false;
-            }
+            console.error('網路請求發生錯誤：', error);
+            alert('❌ 無法連線至伺服器，請檢查網路或 Webhook 網址是否正確。');
+        } finally {
+            saveBtn.innerText = originalText;
+            saveBtn.disabled = false;
         }
+    }
+
+        
     </script>
 </body>
+
 </html>
