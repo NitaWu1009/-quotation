@@ -3,44 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>報價單產生器</title>
+    <title>大腦行銷 - 專業報價系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <style>
         body { font-size: 0.95rem; } 
-        input, textarea { font-size: 0.9rem; }
+        input, textarea { font-size: 0.9rem; border-radius: 4px; transition: all 0.2s; }
+        input:focus, textarea:focus { background-color: #fff; border-color: #3b82f6; }
         
-        /* 備註欄 CSS */
         #quoteNote { 
-            font-size: 0.85rem; 
-            line-height: 1.5; 
-            overflow-y: hidden; 
-            resize: none;      
-            min-height: 120px;  
-            width: 100%;
-            display: block;
+            font-size: 0.85rem; line-height: 1.5; overflow-y: hidden; 
+            resize: none; min-height: 120px; width: 100%; display: block;
         }
 
+        .signature-wrapper {
+            border: 1px solid #e2e8f0; background-color: #f8fafc;
+            border-radius: 0.375rem; position: relative; width: 100%; height: 120px;
+        }
+        canvas { width: 100%; height: 100%; touch-action: none; }
+
         @media print {
-            @page {
-                size: A4;
-                margin: 0.8cm; /* 適度增加邊距 */
-            }
-            html, body {
-                zoom: 92%; /* 調整為 92% */
-                height: auto; 
-            }
+            @page { size: A4; margin: 0.8cm; }
+            html, body { zoom: 92%; height: auto; }
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
             .shadow-lg { box-shadow: none !important; border: 1px solid #eee; }
-            #invoice {
-                border: none !important;
-                margin: 0 !important;
-                padding: 10px !important;
-            }
-            #quoteNote {
-                overflow: hidden !important;
-                height: auto !important;
-            }
+            #invoice { border: none !important; margin: 0 !important; padding: 10px !important; }
+            input, textarea { border: none !important; background: transparent !important; }
         }
     </style>
 </head>
@@ -53,18 +42,18 @@
                 <h2 class="text-xl font-bold text-blue-600 mt-1">大腦行銷</h2>
             </div>
             <div class="text-right space-y-1 text-sm">
-                <p class="text-gray-600">報價日期：<input type="date" id="currentDate" class="outline-none border-b border-gray-200 focus:border-blue-400"></p>
-                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" placeholder="QT-20260204" class="outline-none text-right border-b border-gray-200 focus:border-blue-400 w-32"></p>
+                <p class="text-gray-600">報價日期：<input type="date" id="currentDate" class="outline-none border-b border-gray-200"></p>
+                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" placeholder="QT-20260204" class="outline-none text-right border-b border-gray-200 w-32"></p>
             </div>
         </div>
 
         <div class="mb-6">
             <h3 class="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-2 text-base">客戶資訊</h3>
             <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 outline-none px-2" placeholder="客戶全銜"></div>
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">官方網域:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">連絡電話:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">統一編號:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 px-2" placeholder="客戶全銜"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">官方網域:</span><input type="text" id="clientWeb" class="w-full border-b border-gray-300 px-2"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">連絡電話:</span><input type="text" id="clientPhone" class="w-full border-b border-gray-300 px-2"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">統一編號:</span><input type="text" id="clientTax" class="w-full border-b border-gray-300 px-2"></div>
             </div>
         </div>
 
@@ -88,17 +77,14 @@
                 </tr>
             </tbody>
         </table>
-        
-        <button type="button" onclick="addItem()" class="no-print mb-4 inline-flex items-center text-blue-600 font-bold text-sm hover:text-blue-800">
+        <button type="button" onclick="addItem()" id="addBtn" class="no-print mb-4 inline-flex items-center text-blue-600 font-bold text-sm">
             <span class="text-lg mr-1">+</span> 新增報價項目
         </button>
 
-        <div class="flex justify-end mb-6">
-            <div class="w-64 space-y-1 border-t-2 border-gray-800 pt-2">
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">總計金額 (含稅)</span>
-                    <span id="grandTotal" class="font-bold text-xl text-blue-700">0</span>
-                </div>
+        <div class="flex justify-end mb-6 text-right">
+            <div class="w-64 border-t-2 border-gray-800 pt-2">
+                <span class="text-sm text-gray-600 block">總計金額 (含稅)</span>
+                <span id="grandTotal" class="font-bold text-2xl text-blue-700">0</span>
             </div>
         </div>
 
@@ -108,106 +94,120 @@
         </div>
 
         <div class="grid grid-cols-2 gap-8">
-            <div class="border border-gray-300 rounded p-4 min-h-[100px] flex flex-col justify-between">
-                <p class="font-bold text-sm">報價人簽章 (大腦行銷)</p>
-                <div class="text-xs text-gray-400 pt-1 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
+            <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between">
+                <p class="font-bold text-sm underline text-blue-600 italic">大腦行銷簽章區</p>
+                <div class="flex-grow flex items-center justify-center text-gray-400 italic">請蓋公司章或簽名</div>
+                <div class="text-xs text-gray-400 pt-1 border-t border-dashed text-right">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
-            <div class="border border-gray-300 rounded p-4 min-h-[100px] flex flex-col justify-between">
-                <p class="font-bold text-sm">客戶簽章確認</p>
-                <div class="text-xs text-gray-400 pt-1 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
+            <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between">
+                <div class="flex justify-between items-center"><p class="font-bold text-sm">客戶簽名處</p><button type="button" onclick="clearSignature()" class="no-print text-xs text-red-500">清除</button></div>
+                <div class="signature-wrapper"><canvas id="signature-pad"></canvas></div>
+                <div class="text-xs text-gray-400 pt-1 border-t border-dashed text-right">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto mt-6 flex gap-4 justify-center no-print">
-        <button onclick="handlePrint()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-black transition">列印 / PDF</button>
-        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-blue-700 transition">儲存至 Notion</button>
+    <div class="max-w-4xl mx-auto mt-6 flex gap-3 justify-center no-print flex-wrap">
+        <button onclick="handlePrint()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded shadow">列印 / PDF</button>
+        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded shadow">儲存至 Notion</button>
+        <button onclick="generateClientLink()" id="linkBtn" class="bg-green-600 text-white font-bold py-3 px-6 rounded shadow">生成客戶專屬連結</button>
     </div>
 
     <script>
-        document.getElementById('currentDate').valueAsDate = new Date();
+        const canvas = document.getElementById('signature-pad');
+        const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255, 255, 255, 0)', penColor: 'rgb(0, 0, 0)' });
 
-        function autoHeight(element) {
-            element.style.height = "auto";
-            element.style.height = (element.scrollHeight) + "px";
+        function resizeCanvas() {
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+            signaturePad.clear();
         }
-
+        window.onresize = resizeCanvas;
+        
         window.onload = function() {
-            autoHeight(document.getElementById('quoteNote'));
+            document.getElementById('currentDate').valueAsDate = new Date();
+            resizeCanvas();
+
+            // 解析網址參數自動填表
+            const p = new URLSearchParams(window.location.search);
+            if(p.get('c')) document.getElementById('clientName').value = p.get('c');
+            if(p.get('w')) document.getElementById('clientWeb').value = p.get('w');
+            if(p.get('p')) document.getElementById('clientPhone').value = p.get('p');
+            if(p.get('t')) document.getElementById('clientTax').value = p.get('t');
+            if(p.get('i')) document.getElementById('quoteId').value = p.get('i');
+            if(p.get('n')) {
+                document.getElementById('quoteNote').value = p.get('n');
+                autoHeight(document.getElementById('quoteNote'));
+            }
+
+            // 如果有鎖定參數，隱藏按鈕並唯讀
+            if (p.get('lock') === '1') {
+                document.querySelectorAll('input, textarea').forEach(el => el.readOnly = true);
+                document.getElementById('addBtn').style.display = 'none';
+                document.getElementById('linkBtn').style.display = 'none';
+                document.querySelectorAll('.no-print button').forEach(b => { if(b.innerText === '✕') b.style.display='none' });
+            }
         };
 
-        // 檔名連動與列印
-        function handlePrint() {
-            const clientName = document.getElementById('clientName').value || "未命名客戶";
-            const date = document.getElementById('currentDate').value;
-            const quoteId = document.getElementById('quoteId').value || "無編號";
-            
-            // 暫時修改網頁標題，這會影響 PDF 預設存檔檔名
-            const originalTitle = document.title;
-            document.title = `${clientName}-${date}-${quoteId}`;
-            
-            window.print();
-            
-            // 印完後改回原標題
-            setTimeout(() => { document.title = originalTitle; }, 1000);
+        function generateClientLink() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const params = new URLSearchParams({
+                c: document.getElementById('clientName').value,
+                w: document.getElementById('clientWeb').value,
+                p: document.getElementById('clientPhone').value,
+                t: document.getElementById('clientTax').value,
+                i: document.getElementById('quoteId').value,
+                n: document.getElementById('quoteNote').value,
+                lock: 1
+            });
+            const fullUrl = `${baseUrl}?${params.toString()}`;
+            navigator.clipboard.writeText(fullUrl);
+            alert("專屬連結已複製！傳送給客戶後，內容將被鎖定，客戶只能簽名。");
         }
 
+        function clearSignature() { signaturePad.clear(); }
+        function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
         function addItem() {
             const list = document.getElementById('item-list');
             const row = document.createElement('tr');
             row.className = "border-b border-gray-100";
-            row.innerHTML = `
-                <td class="p-2"><input type="text" placeholder="項目說明" class="w-full outline-none bg-transparent"></td>
-                <td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                <td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                <td class="p-2 text-center font-bold total-cell">0</td>
-                <td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
-            `;
+            row.innerHTML = `<td class="p-2"><input type="text" class="w-full outline-none bg-transparent"></td><td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center font-bold total-cell">0</td><td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>`;
             list.appendChild(row);
         }
-
         function removeItem(btn) { btn.closest('tr').remove(); calculate(); }
-
         function calculate() {
-            let subtotal = 0;
-            const rows = document.querySelectorAll('#item-list tr');
-            rows.forEach(row => {
-                const qty = parseFloat(row.querySelector('.qty').value) || 0;
-                const price = parseFloat(row.querySelector('.price').value) || 0;
-                const total = qty * price;
-                row.querySelector('.total-cell').innerText = total.toLocaleString();
-                subtotal += total;
+            let s = 0;
+            document.querySelectorAll('#item-list tr').forEach(r => {
+                const q = parseFloat(r.querySelector('.qty').value) || 0;
+                const p = parseFloat(r.querySelector('.price').value) || 0;
+                const t = q * p;
+                r.querySelector('.total-cell').innerText = t.toLocaleString();
+                s += t;
             });
-            document.getElementById('grandTotal').innerText = Math.round(subtotal * 1.05).toLocaleString();
+            document.getElementById('grandTotal').innerText = Math.round(s * 1.05).toLocaleString();
         }
-
+        function handlePrint() {
+            document.title = `${document.getElementById('clientName').value}-${document.getElementById('currentDate').value}-${document.getElementById('quoteId').value}`;
+            window.print();
+        }
         async function saveToNotion() {
-            const saveBtn = document.getElementById('saveBtn');
-            const clientName = document.getElementById('clientName').value;
-            if (!clientName) { alert("請輸入客戶公司名稱後再儲存"); return; }
-            saveBtn.innerText = "連動中...";
-            saveBtn.disabled = true;
-            const data = {
-                company: clientName,
-                date: document.getElementById('currentDate').value,
-                total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
-                id: document.getElementById('quoteId').value,
-                note: document.getElementById('quoteNote').value
-            };
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "儲存中..."; btn.disabled = true;
             try {
-                const response = await fetch("https://eo2ddbgd6zenms9.m.pipedream.net", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                const res = await fetch("https://eo2ddbgd6zenms9.m.pipedream.net", {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        company: document.getElementById('clientName').value,
+                        date: document.getElementById('currentDate').value,
+                        total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
+                        id: document.getElementById('quoteId').value,
+                        note: document.getElementById('quoteNote').value
+                    })
                 });
-                if (response.ok) alert('✅ 儲存成功！');
-                else alert('❌ 儲存失敗');
-            } catch (error) {
-                alert('❌ 網路連線錯誤');
-            } finally {
-                saveBtn.innerText = "儲存至 Notion";
-                saveBtn.disabled = false;
-            }
+                if (res.ok) alert('✅ 儲存成功！');
+            } catch (e) { alert('❌ 失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
         }
     </script>
 </body>
