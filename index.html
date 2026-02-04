@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大腦行銷 - 專業報價系統</title>
+    <title>報價單產生器</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { font-size: 0.95rem; } 
         input, textarea { font-size: 0.9rem; }
         
-        /* 徹底解決滾輪問題的 CSS */
+        /* 備註欄 CSS */
         #quoteNote { 
             font-size: 0.85rem; 
             line-height: 1.5; 
-            overflow-y: hidden; /* 強制隱藏垂直滾輪 */
-            resize: none;      /* 禁止手動拖拉 */
-            min-height: 120px;  /* 設定一個基礎高度 */
+            overflow-y: hidden; 
+            resize: none;      
+            min-height: 120px;  
             width: 100%;
             display: block;
         }
@@ -23,11 +23,11 @@
         @media print {
             @page {
                 size: A4;
-                margin: 0.5cm;
+                margin: 0.8cm; /* 適度增加邊距 */
             }
             html, body {
-                zoom: 85%;
-                height: auto; /* 允許高度自動延伸 */
+                zoom: 92%; /* 調整為 92% */
+                height: auto; 
             }
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
@@ -37,7 +37,6 @@
                 margin: 0 !important;
                 padding: 10px !important;
             }
-            /* 確保列印時完全沒有滾輪痕跡且高度正確 */
             #quoteNote {
                 overflow: hidden !important;
                 height: auto !important;
@@ -121,24 +120,37 @@
     </div>
 
     <div class="max-w-4xl mx-auto mt-6 flex gap-4 justify-center no-print">
-        <button onclick="window.print()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-black transition">列印 / PDF</button>
+        <button onclick="handlePrint()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-black transition">列印 / PDF</button>
         <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-blue-700 transition">儲存至 Notion</button>
     </div>
 
     <script>
         document.getElementById('currentDate').valueAsDate = new Date();
 
-        // 強化後的自動調整高度
         function autoHeight(element) {
-            element.style.height = "auto"; // 先縮回原樣來計算正確的 scrollHeight
-            element.style.height = (element.scrollHeight) + "px"; // 設定成內容總高度
+            element.style.height = "auto";
+            element.style.height = (element.scrollHeight) + "px";
         }
 
-        // 頁面載入後自動校正一次高度 (避免預設內容導致滾輪)
         window.onload = function() {
-            const noteArea = document.getElementById('quoteNote');
-            autoHeight(noteArea);
+            autoHeight(document.getElementById('quoteNote'));
         };
+
+        // 檔名連動與列印
+        function handlePrint() {
+            const clientName = document.getElementById('clientName').value || "未命名客戶";
+            const date = document.getElementById('currentDate').value;
+            const quoteId = document.getElementById('quoteId').value || "無編號";
+            
+            // 暫時修改網頁標題，這會影響 PDF 預設存檔檔名
+            const originalTitle = document.title;
+            document.title = `${clientName}-${date}-${quoteId}`;
+            
+            window.print();
+            
+            // 印完後改回原標題
+            setTimeout(() => { document.title = originalTitle; }, 1000);
+        }
 
         function addItem() {
             const list = document.getElementById('item-list');
@@ -200,4 +212,3 @@
     </script>
 </body>
 </html>
-
