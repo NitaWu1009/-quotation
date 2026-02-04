@@ -9,19 +9,9 @@
     <style>
         body { font-size: 0.95rem; } 
         input, textarea { font-size: 0.9rem; border-radius: 4px; transition: all 0.2s; }
-        input:focus, textarea:focus { background-color: #fff; border-color: #3b82f6; }
-        
-        #quoteNote { 
-            font-size: 0.85rem; line-height: 1.5; overflow-y: hidden; 
-            resize: none; min-height: 120px; width: 100%; display: block;
-        }
-
-        .signature-wrapper {
-            border: 1px solid #e2e8f0; background-color: #f8fafc;
-            border-radius: 0.375rem; position: relative; width: 100%; height: 120px;
-        }
+        #quoteNote { font-size: 0.85rem; line-height: 1.5; overflow-y: hidden; resize: none; min-height: 80px; width: 100%; display: block; }
+        .signature-wrapper { border: 1px solid #e2e8f0; background-color: #f8fafc; border-radius: 0.375rem; position: relative; width: 100%; height: 120px; }
         canvas { width: 100%; height: 100%; touch-action: none; }
-
         @media print {
             @page { size: A4; margin: 0.8cm; }
             html, body { zoom: 92%; height: auto; }
@@ -68,14 +58,7 @@
                 </tr>
             </thead>
             <tbody id="item-list">
-                <tr class="border-b border-gray-100">
-                    <td class="p-2"><input type="text" placeholder="項目說明" class="w-full outline-none bg-transparent"></td>
-                    <td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                    <td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                    <td class="p-2 text-center font-bold total-cell">0</td>
-                    <td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
-                </tr>
-            </tbody>
+                </tbody>
         </table>
         <button type="button" onclick="addItem()" id="addBtn" class="no-print mb-4 inline-flex items-center text-blue-600 font-bold text-sm">
             <span class="text-lg mr-1">+</span> 新增報價項目
@@ -95,7 +78,7 @@
 
         <div class="grid grid-cols-2 gap-8">
             <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between">
-                <p class="font-bold text-sm underline text-blue-600 italic">大腦行銷簽章區</p>
+                <p class="font-bold text-sm underline text-blue-600 italic text-center">大腦行銷簽章區</p>
                 <div class="flex-grow flex items-center justify-center text-gray-400 italic">請蓋公司章或簽名</div>
                 <div class="text-xs text-gray-400 pt-1 border-t border-dashed text-right">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
@@ -122,16 +105,25 @@
             canvas.width = canvas.offsetWidth * ratio;
             canvas.height = canvas.offsetHeight * ratio;
             canvas.getContext("2d").scale(ratio, ratio);
-            signaturePad.clear();
         }
-        window.onresize = resizeCanvas;
-        
+
         window.onload = function() {
             document.getElementById('currentDate').valueAsDate = new Date();
             resizeCanvas();
 
-            // 解析網址參數自動填表
             const p = new URLSearchParams(window.location.search);
+            
+            // 讀取項目列表 (核心更新)
+            if (p.has('items')) {
+                try {
+                    const items = JSON.parse(decodeURIComponent(p.get('items')));
+                    items.forEach(item => addItem(item.name, item.qty, item.price));
+                } catch (e) { console.error("解析項目失敗", e); addItem(); }
+            } else {
+                addItem(); // 沒帶參數時給一列空白
+            }
+
+            // 讀取其他基本資料
             if(p.get('c')) document.getElementById('clientName').value = p.get('c');
             if(p.get('w')) document.getElementById('clientWeb').value = p.get('w');
             if(p.get('p')) document.getElementById('clientPhone').value = p.get('p');
@@ -142,16 +134,43 @@
                 autoHeight(document.getElementById('quoteNote'));
             }
 
-            // 如果有鎖定參數，隱藏按鈕並唯讀
+            calculate(); // 重算金額
+
             if (p.get('lock') === '1') {
                 document.querySelectorAll('input, textarea').forEach(el => el.readOnly = true);
                 document.getElementById('addBtn').style.display = 'none';
                 document.getElementById('linkBtn').style.display = 'none';
-                document.querySelectorAll('.no-print button').forEach(b => { if(b.innerText === '✕') b.style.display='none' });
+                document.querySelectorAll('#item-list button').forEach(b => b.style.display='none');
             }
         };
 
+        // 修改後的 addItem，支援預填資料
+        function addItem(name = "", qty = 1, price = 0) {
+            const list = document.getElementById('item-list');
+            const row = document.createElement('tr');
+            row.className = "border-b border-gray-100";
+            row.innerHTML = `
+                <td class="p-2"><input type="text" value="${name}" placeholder="項目說明" class="name-field w-full outline-none bg-transparent"></td>
+                <td class="p-2 text-center"><input type="number" value="${qty}" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                <td class="p-2 text-center"><input type="number" value="${price}" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                <td class="p-2 text-center font-bold total-cell">0</td>
+                <td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
+            `;
+            list.appendChild(row);
+            calculate();
+        }
+
         function generateClientLink() {
+            // 抓取所有項目資料
+            const items = [];
+            document.querySelectorAll('#item-list tr').forEach(row => {
+                items.push({
+                    name: row.querySelector('.name-field').value,
+                    qty: row.querySelector('.qty').value,
+                    price: row.querySelector('.price').value
+                });
+            });
+
             const baseUrl = window.location.origin + window.location.pathname;
             const params = new URLSearchParams({
                 c: document.getElementById('clientName').value,
@@ -160,22 +179,19 @@
                 t: document.getElementById('clientTax').value,
                 i: document.getElementById('quoteId').value,
                 n: document.getElementById('quoteNote').value,
+                items: JSON.stringify(items), // 打包項目列表
                 lock: 1
             });
+
             const fullUrl = `${baseUrl}?${params.toString()}`;
-            navigator.clipboard.writeText(fullUrl);
-            alert("專屬連結已複製！傳送給客戶後，內容將被鎖定，客戶只能簽名。");
+            navigator.clipboard.writeText(fullUrl).then(() => {
+                alert("✨ 專屬連結已複製！包含所有報價項目與客戶資料。");
+            });
         }
 
+        // 其餘邏輯
         function clearSignature() { signaturePad.clear(); }
         function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
-        function addItem() {
-            const list = document.getElementById('item-list');
-            const row = document.createElement('tr');
-            row.className = "border-b border-gray-100";
-            row.innerHTML = `<td class="p-2"><input type="text" class="w-full outline-none bg-transparent"></td><td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center font-bold total-cell">0</td><td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>`;
-            list.appendChild(row);
-        }
         function removeItem(btn) { btn.closest('tr').remove(); calculate(); }
         function calculate() {
             let s = 0;
