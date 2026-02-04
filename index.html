@@ -40,7 +40,7 @@
         <div class="mb-6">
             <h3 class="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-2 text-base">客戶資訊</h3>
             <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 px-2" placeholder="客戶全銜"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 px-2"></div>
                 <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">官方網域:</span><input type="text" id="clientWeb" class="w-full border-b border-gray-300 px-2"></div>
                 <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">連絡電話:</span><input type="text" id="clientPhone" class="w-full border-b border-gray-300 px-2"></div>
                 <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">統一編號:</span><input type="text" id="clientTax" class="w-full border-b border-gray-300 px-2"></div>
@@ -57,12 +57,9 @@
                     <th class="p-3 w-12 no-print"></th>
                 </tr>
             </thead>
-            <tbody id="item-list">
-                </tbody>
+            <tbody id="item-list"></tbody>
         </table>
-        <button type="button" onclick="addItem()" id="addBtn" class="no-print mb-4 inline-flex items-center text-blue-600 font-bold text-sm">
-            <span class="text-lg mr-1">+</span> 新增報價項目
-        </button>
+        <button type="button" onclick="addItem()" id="addBtn" class="no-print mb-4 inline-flex items-center text-blue-600 font-bold text-sm">+ 新增報價項目</button>
 
         <div class="flex justify-end mb-6 text-right">
             <div class="w-64 border-t-2 border-gray-800 pt-2">
@@ -73,14 +70,14 @@
 
         <div class="mb-6 bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
             <h4 class="font-bold text-gray-700 mb-1 text-sm underline">報價備註說明 (Notes)</h4>
-            <textarea id="quoteNote" oninput="autoHeight(this)" class="w-full bg-transparent outline-none text-gray-600" placeholder="請輸入備註內容..."></textarea>
+            <textarea id="quoteNote" oninput="autoHeight(this)" class="w-full bg-transparent outline-none text-gray-600" placeholder="請輸入備註..."></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-8">
-            <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between">
-                <p class="font-bold text-sm underline text-blue-600 italic text-center">大腦行銷簽章區</p>
-                <div class="flex-grow flex items-center justify-center text-gray-400 italic">請蓋公司章或簽名</div>
-                <div class="text-xs text-gray-400 pt-1 border-t border-dashed text-right">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
+            <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between italic text-gray-400 text-center">
+                <p class="font-bold text-sm text-blue-600 not-italic">大腦行銷簽章區</p>
+                請蓋公司章或簽名
+                <div class="text-xs pt-1 border-t border-dashed text-right not-italic">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
             <div class="border border-gray-300 rounded p-4 min-h-[160px] flex flex-col justify-between">
                 <div class="flex justify-between items-center"><p class="font-bold text-sm">客戶簽名處</p><button type="button" onclick="clearSignature()" class="no-print text-xs text-red-500">清除</button></div>
@@ -113,17 +110,21 @@
 
             const p = new URLSearchParams(window.location.search);
             
-            // 讀取項目列表 (核心更新)
+            // 核心修正：還原項目列表
             if (p.has('items')) {
                 try {
-                    const items = JSON.parse(decodeURIComponent(p.get('items')));
-                    items.forEach(item => addItem(item.name, item.qty, item.price));
-                } catch (e) { console.error("解析項目失敗", e); addItem(); }
+                    const itemsData = JSON.parse(decodeURIComponent(p.get('items')));
+                    if (Array.isArray(itemsData) && itemsData.length > 0) {
+                        itemsData.forEach(item => {
+                            addItem(item.n, item.q, item.p);
+                        });
+                    } else { addItem(); }
+                } catch (e) { console.error("解析失敗", e); addItem(); }
             } else {
-                addItem(); // 沒帶參數時給一列空白
+                addItem();
             }
 
-            // 讀取其他基本資料
+            // 還原其他欄位
             if(p.get('c')) document.getElementById('clientName').value = p.get('c');
             if(p.get('w')) document.getElementById('clientWeb').value = p.get('w');
             if(p.get('p')) document.getElementById('clientPhone').value = p.get('p');
@@ -134,7 +135,7 @@
                 autoHeight(document.getElementById('quoteNote'));
             }
 
-            calculate(); // 重算金額
+            calculate();
 
             if (p.get('lock') === '1') {
                 document.querySelectorAll('input, textarea').forEach(el => el.readOnly = true);
@@ -144,15 +145,14 @@
             }
         };
 
-        // 修改後的 addItem，支援預填資料
         function addItem(name = "", qty = 1, price = 0) {
             const list = document.getElementById('item-list');
             const row = document.createElement('tr');
             row.className = "border-b border-gray-100";
             row.innerHTML = `
-                <td class="p-2"><input type="text" value="${name}" placeholder="項目說明" class="name-field w-full outline-none bg-transparent"></td>
-                <td class="p-2 text-center"><input type="number" value="${qty}" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                <td class="p-2 text-center"><input type="number" value="${price}" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                <td class="p-2"><input type="text" value="${name}" placeholder="項目說明" class="name-input w-full outline-none bg-transparent"></td>
+                <td class="p-2 text-center"><input type="number" value="${qty}" class="qty-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                <td class="p-2 text-center"><input type="number" value="${price}" class="price-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
                 <td class="p-2 text-center font-bold total-cell">0</td>
                 <td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
             `;
@@ -161,43 +161,46 @@
         }
 
         function generateClientLink() {
-            // 抓取所有項目資料
             const items = [];
             document.querySelectorAll('#item-list tr').forEach(row => {
-                items.push({
-                    name: row.querySelector('.name-field').value,
-                    qty: row.querySelector('.qty').value,
-                    price: row.querySelector('.price').value
-                });
+                const name = row.querySelector('.name-input').value;
+                const qty = row.querySelector('.qty-input').value;
+                const price = row.querySelector('.price-input').value;
+                if(name || price > 0) { // 只抓取有填寫的項目
+                    items.push({ n: name, q: qty, p: price });
+                }
             });
 
             const baseUrl = window.location.origin + window.location.pathname;
-            const params = new URLSearchParams({
-                c: document.getElementById('clientName').value,
-                w: document.getElementById('clientWeb').value,
-                p: document.getElementById('clientPhone').value,
-                t: document.getElementById('clientTax').value,
-                i: document.getElementById('quoteId').value,
-                n: document.getElementById('quoteNote').value,
-                items: JSON.stringify(items), // 打包項目列表
-                lock: 1
-            });
+            const params = new URLSearchParams();
+            params.set('c', document.getElementById('clientName').value);
+            params.set('w', document.getElementById('clientWeb').value);
+            params.set('p', document.getElementById('clientPhone').value);
+            params.set('t', document.getElementById('clientTax').value);
+            params.set('i', document.getElementById('quoteId').value);
+            params.set('n', document.getElementById('quoteNote').value);
+            params.set('items', JSON.stringify(items)); // 序列化項目
+            params.set('lock', '1');
 
             const fullUrl = `${baseUrl}?${params.toString()}`;
+            
+            // 執行複製
             navigator.clipboard.writeText(fullUrl).then(() => {
-                alert("✨ 專屬連結已複製！包含所有報價項目與客戶資料。");
+                alert("✅ 客戶專屬連結已複製！請貼上傳送給客戶。");
+                console.log("Generated URL:", fullUrl);
+            }).catch(err => {
+                alert("複製失敗，請手動從控制台(F12)複製網址");
             });
         }
 
-        // 其餘邏輯
         function clearSignature() { signaturePad.clear(); }
         function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
         function removeItem(btn) { btn.closest('tr').remove(); calculate(); }
         function calculate() {
             let s = 0;
             document.querySelectorAll('#item-list tr').forEach(r => {
-                const q = parseFloat(r.querySelector('.qty').value) || 0;
-                const p = parseFloat(r.querySelector('.price').value) || 0;
+                const q = parseFloat(r.querySelector('.qty-input').value) || 0;
+                const p = parseFloat(r.querySelector('.price-input').value) || 0;
                 const t = q * p;
                 r.querySelector('.total-cell').innerText = t.toLocaleString();
                 s += t;
