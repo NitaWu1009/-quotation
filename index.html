@@ -9,13 +9,15 @@
         body { font-size: 0.95rem; } 
         input, textarea { font-size: 0.9rem; }
         
-        /* 備註欄自動伸縮樣式 */
+        /* 徹底解決滾輪問題的 CSS */
         #quoteNote { 
             font-size: 0.85rem; 
             line-height: 1.5; 
-            overflow: hidden; /* 隱藏捲軸 */
-            resize: none;    /* 禁止手動調整大小 */
-            min-height: 60px; 
+            overflow-y: hidden; /* 強制隱藏垂直滾輪 */
+            resize: none;      /* 禁止手動拖拉 */
+            min-height: 80px;  /* 設定一個基礎高度 */
+            width: 100%;
+            display: block;
         }
 
         @media print {
@@ -24,9 +26,8 @@
                 margin: 0.5cm;
             }
             html, body {
-                zoom: 90%;
-                /* 移除 overflow: hidden 讓長內容可以印出 */
-                height: auto; 
+                zoom: 85%;
+                height: auto; /* 允許高度自動延伸 */
             }
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
@@ -36,10 +37,10 @@
                 margin: 0 !important;
                 padding: 10px !important;
             }
-            /* 確保列印時備註欄顯示完整邊框 */
+            /* 確保列印時完全沒有滾輪痕跡且高度正確 */
             #quoteNote {
-                border: none;
-                height: auto !important; /* 強制列印高度 */
+                overflow: hidden !important;
+                height: auto !important;
             }
         }
     </style>
@@ -104,7 +105,7 @@
 
         <div class="mb-6 bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
             <h4 class="font-bold text-gray-700 mb-1 text-sm underline">報價備註說明 (Notes)</h4>
-            <textarea id="quoteNote" oninput="autoHeight(this)" class="w-full bg-transparent outline-none text-gray-600" rows="3" placeholder="請輸入備註..."></textarea>
+            <textarea id="quoteNote" oninput="autoHeight(this)" class="w-full bg-transparent outline-none text-gray-600" placeholder="請輸入備註內容..."></textarea>
         </div>
 
         <div class="grid grid-cols-2 gap-8">
@@ -127,11 +128,17 @@
     <script>
         document.getElementById('currentDate').valueAsDate = new Date();
 
-        // 自動調整備註欄高度的函式
+        // 強化後的自動調整高度
         function autoHeight(element) {
-            element.style.height = "auto";
-            element.style.height = (element.scrollHeight) + "px";
+            element.style.height = "auto"; // 先縮回原樣來計算正確的 scrollHeight
+            element.style.height = (element.scrollHeight) + "px"; // 設定成內容總高度
         }
+
+        // 頁面載入後自動校正一次高度 (避免預設內容導致滾輪)
+        window.onload = function() {
+            const noteArea = document.getElementById('quoteNote');
+            autoHeight(noteArea);
+        };
 
         function addItem() {
             const list = document.getElementById('item-list');
