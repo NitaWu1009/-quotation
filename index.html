@@ -153,17 +153,57 @@
         };
 
         function saveAsImage() {
-            const name = document.getElementById('clientName').value || "客戶";
-            const date = document.getElementById('currentDate').value;
-            const id = document.getElementById('quoteId').value || "無編號";
+    const name = document.getElementById('clientName').value || "客戶";
+    const date = document.getElementById('currentDate').value;
+    const id = document.getElementById('quoteId').value || "無編號";
+    const fileName = `${name}-${date}-${id}.png`;
+    
+    // 顯示讀取中，避免手機版沒反應
+    const btn = event.target;
+    const originalText = btn.innerText;
+    btn.innerText = "產生圖片中...";
+    btn.disabled = true;
+
+    // 針對手機優化設定
+    html2canvas(document.getElementById('invoice'), { 
+        scale: 2,           // 2 倍解析度，兼顧清晰度與手機性能
+        useCORS: true,      // 允許跨域圖片
+        logging: false,     // 關閉日誌
+        backgroundColor: "#FFFFFF" // 確保背景是白色而非透明
+    }).then(canvas => {
+        try {
+            // 嘗試自動下載
+            const link = document.createElement('a');
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
             
-            html2canvas(document.getElementById('invoice'), { scale: 2 }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `${name}-${date}-${id}.png`;
-                link.href = canvas.toDataURL("image/png");
+            // 判斷是否為 iOS 或某些行動裝置
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // 手機版：直接在新分頁開啟圖片，讓客戶長按圖片儲存
+                const imgData = canvas.toDataURL("image/png");
+                const newTab = window.open();
+                if (newTab) {
+                    newTab.document.write(`<img src="${imgData}" style="width:100%" />`);
+                    newTab.document.title = fileName;
+                    alert("✅ 圖片已產生！請在開啟的新視窗中「長按圖片」選擇「儲存圖片」，再回傳即可。");
+                } else {
+                    alert("❌ 偵測到彈出視窗被阻擋，請手動允許或嘗試列印 PDF。");
+                }
+            } else {
+                // 電腦版：直接下載
                 link.click();
-            });
+            }
+        } catch (err) {
+            console.error("PNG 產生失敗:", err);
+            alert("❌ 圖片產生失敗，建議改用「下載 PDF」功能。");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
         }
+    });
+}
 
         function addItem(name = "", qty = 1, price = 0) {
             const list = document.getElementById('item-list');
@@ -232,3 +272,4 @@
     </script>
 </body>
 </html>
+
