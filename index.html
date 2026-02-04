@@ -150,4 +150,28 @@
             const data = {
                 company: clientName,
                 date: document.getElementById('currentDate').value,
-                total: parseInt(
+                total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
+                id: document.getElementById('quoteId').value,
+                note: document.getElementById('quoteNote').value
+            };
+
+            const webhookUrl = "https://eo2ddbgd6zenms9.m.pipedream.net";
+
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) alert('✅ 儲存成功！');
+                else alert('❌ 伺服器回傳錯誤');
+            } catch (error) {
+                alert('❌ 網路連線錯誤');
+            } finally {
+                saveBtn.innerText = "儲存至 Notion";
+                saveBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
