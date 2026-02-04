@@ -6,88 +6,112 @@
     <title>大腦行銷 - 專業報價系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-size: 1.15rem; }
-        input, textarea { font-size: 1.1rem; }
+        /* 整體比例縮小 */
+        body { font-size: 0.95rem; } 
+        input, textarea { font-size: 0.9rem; }
+        
+        /* 備註欄位特別小一點 */
+        #quoteNote { font-size: 0.85rem; line-height: 1.4; }
+
         @media print {
+            /* 強制列印在一頁 */
+            @page {
+                size: A4;
+                margin: 0.5cm; /* 減少邊距 */
+            }
+            html, body {
+                zoom: 85%; /* 整體列印縮放比例 */
+                height: 100%;
+                overflow: hidden;
+            }
             .no-print { display: none !important; }
             body { padding: 0; background: white; }
             .shadow-lg { box-shadow: none !important; border: 1px solid #eee; }
-            input::placeholder, textarea::placeholder { color: transparent !important; }
+            
+            /* 防止內容被切斷 */
+            #invoice {
+                border: none !important;
+                margin: 0 !important;
+                padding: 10px !important;
+            }
         }
     </style>
 </head>
-<body class="bg-gray-100 p-5 md:p-10">
+<body class="bg-gray-100 p-4 md:p-6">
 
-    <div class="max-w-5xl mx-auto bg-white p-10 shadow-lg rounded-lg border border-gray-200" id="invoice">
-        <div class="flex justify-between items-start border-b-4 border-gray-800 pb-6 mb-8">
+    <div class="max-w-4xl mx-auto bg-white p-8 shadow-lg rounded-lg border border-gray-200" id="invoice">
+        <div class="flex justify-between items-start border-b-4 border-gray-800 pb-4 mb-6">
             <div>
-                <h1 class="text-5xl font-extrabold text-gray-800">報價單</h1>
-                <h2 class="text-2xl font-bold text-blue-600 mt-2">大腦行銷</h2>
+                <h1 class="text-4xl font-extrabold text-gray-800">報價單</h1>
+                <h2 class="text-xl font-bold text-blue-600 mt-1">大腦行銷</h2>
             </div>
-            <div class="text-right space-y-1">
+            <div class="text-right space-y-1 text-sm">
                 <p class="text-gray-600">報價日期：<input type="date" id="currentDate" class="outline-none border-b border-gray-200 focus:border-blue-400"></p>
-                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" placeholder="QT-20260204" class="outline-none text-right border-b border-gray-200 focus:border-blue-400 w-40"></p>
+                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" placeholder="QT-20260204" class="outline-none text-right border-b border-gray-200 focus:border-blue-400 w-32"></p>
             </div>
         </div>
 
-        <div class="mb-10">
-            <h3 class="font-bold text-gray-700 mb-4 border-l-4 border-blue-500 pl-2">客戶資訊</h3>
-            <div class="grid grid-cols-2 gap-x-8 gap-y-3">
-                <div class="flex items-center"><span class="w-24 text-gray-500">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 outline-none px-2" placeholder="客戶全銜"></div>
-                <div class="flex items-center"><span class="w-24 text-gray-500">官方網域:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
-                <div class="flex items-center"><span class="w-24 text-gray-500">連絡電話:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
-                <div class="flex items-center"><span class="w-24 text-gray-500">統一編號:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
+        <div class="mb-6">
+            <h3 class="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-2 text-base">客戶資訊</h3>
+            <div class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 outline-none px-2" placeholder="客戶全銜"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">官方網域:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">連絡電話:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
+                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">統一編號:</span><input type="text" class="w-full border-b border-gray-300 outline-none px-2"></div>
             </div>
         </div>
 
-        <table class="w-full mb-6 text-left border-collapse">
+        <table class="w-full mb-4 text-left border-collapse text-sm">
             <thead>
                 <tr class="bg-gray-800 text-white">
-                    <th class="p-4 rounded-l-md">類別 / 項目</th>
-                    <th class="p-4 w-24 text-center">數量</th>
-                    <th class="p-4 w-36 text-center">單價</th>
-                    <th class="p-4 w-36 text-center">金額</th>
-                    <th class="p-4 w-16 no-print"></th>
+                    <th class="p-3 rounded-l-md">類別 / 項目</th>
+                    <th class="p-3 w-20 text-center">數量</th>
+                    <th class="p-3 w-32 text-center">單價</th>
+                    <th class="p-3 w-32 text-center">金額</th>
+                    <th class="p-3 w-12 no-print"></th>
                 </tr>
             </thead>
             <tbody id="item-list">
                 <tr class="border-b border-gray-100">
-                    <td class="p-4"><input type="text" placeholder="項目說明" class="w-full outline-none bg-transparent"></td>
-                    <td class="p-4 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                    <td class="p-4 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
-                    <td class="p-4 text-center font-bold total-cell">0</td>
-                    <td class="p-4 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
+                    <td class="p-2"><input type="text" placeholder="項目說明" class="w-full outline-none bg-transparent"></td>
+                    <td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                    <td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td>
+                    <td class="p-2 text-center font-bold total-cell">0</td>
+                    <td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>
                 </tr>
             </tbody>
         </table>
-        <button onclick="addItem()" class="no-print mb-6 text-blue-600 font-bold">+ 新增報價項目</button>
+        <button onclick="addItem()" class="no-print mb-4 text-blue-600 font-bold text-sm">+ 新增報價項目</button>
 
-        <div class="flex justify-end mb-8">
-            <div class="w-80 space-y-2">
-                <div class="flex justify-between border-b pb-2"><span>總計金額 (含稅)</span><span id="grandTotal" class="font-bold text-2xl text-blue-700">0</span></div>
+        <div class="flex justify-end mb-6">
+            <div class="w-64 space-y-1 border-t-2 border-gray-800 pt-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">總計金額 (含稅)</span>
+                    <span id="grandTotal" class="font-bold text-xl text-blue-700">0</span>
+                </div>
             </div>
         </div>
 
-        <div class="mb-10 bg-gray-50 p-6 rounded-lg border-l-8 border-gray-300">
-            <h4 class="font-bold text-gray-700 mb-2 underline">報價備註說明 (Notes)</h4>
-            <textarea id="quoteNote" class="w-full bg-transparent outline-none resize-none text-gray-600 leading-relaxed" rows="4" placeholder="1. 本報價有效期為 30 天。&#10;2. 付款方式：簽約後預付 50% 訂金。&#10;3. 匯款帳號：(822) 中國信託 123-456-789..."></textarea>
+        <div class="mb-6 bg-gray-50 p-4 rounded-lg border-l-4 border-gray-300">
+            <h4 class="font-bold text-gray-700 mb-1 text-sm underline">報價備註說明 (Notes)</h4>
+            <textarea id="quoteNote" class="w-full bg-transparent outline-none resize-none text-gray-600" rows="3" placeholder="1. 本報價有效期為 30 天..."></textarea>
         </div>
 
-        <div class="grid grid-cols-2 gap-10">
-            <div class="border border-gray-300 rounded p-6 min-h-[120px] flex flex-col justify-between">
-                <p class="font-bold">報價人簽章 (大腦行銷)</p>
-                <div class="text-sm text-gray-400 pt-2 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
+        <div class="grid grid-cols-2 gap-8">
+            <div class="border border-gray-300 rounded p-4 min-h-[100px] flex flex-col justify-between">
+                <p class="font-bold text-sm">報價人簽章 (大腦行銷)</p>
+                <div class="text-xs text-gray-400 pt-1 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
-            <div class="border border-gray-300 rounded p-6 min-h-[120px] flex flex-col justify-between">
-                <p class="font-bold">客戶簽章確認</p>
-                <div class="text-sm text-gray-400 pt-2 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
+            <div class="border border-gray-300 rounded p-4 min-h-[100px] flex flex-col justify-between">
+                <p class="font-bold text-sm">客戶簽章確認</p>
+                <div class="text-xs text-gray-400 pt-1 border-t border-dashed">日期：2026 / &nbsp;&nbsp;&nbsp; / </div>
             </div>
         </div>
     </div>
 
-    <div class="max-w-5xl mx-auto mt-10 flex gap-4 justify-center no-print">
-        <button onclick="window.print()" class="bg-gray-800 text-white font-bold py-4 px-10 rounded-lg shadow-lg">列印 / PDF</button>
-        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-4 px-10 rounded-lg shadow-lg">儲存至 Notion</button>
+    <div class="max-w-4xl mx-auto mt-6 flex gap-4 justify-center no-print">
+        <button onclick="window.print()" class="bg-gray-800 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-black transition">列印 / PDF</button>
+        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow hover:bg-blue-700 transition">儲存至 Notion</button>
     </div>
 
     <script>
@@ -97,10 +121,12 @@
             const tbody = document.getElementById('item-list');
             const tr = document.createElement('tr');
             tr.className = "border-b border-gray-100";
-            tr.innerHTML = `<td class="p-4"><input type="text" class="w-full outline-none"></td><td class="p-4 text-center"><input type="number" value="1" class="qty w-full text-center outline-none" oninput="calculate()"></td><td class="p-4 text-center"><input type="number" value="0" class="price w-full text-center outline-none" oninput="calculate()"></td><td class="p-4 text-center font-bold total-cell">0</td><td class="p-4 no-print text-right"><button onclick="removeItem(this)" class="text-red-400">✕</button></td>`;
+            tr.innerHTML = `<td class="p-2"><input type="text" class="w-full outline-none bg-transparent"></td><td class="p-2 text-center"><input type="number" value="1" class="qty w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center"><input type="number" value="0" class="price w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center font-bold total-cell">0</td><td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400">✕</button></td>`;
             tbody.appendChild(tr);
         }
+
         function removeItem(btn) { btn.closest('tr').remove(); calculate(); }
+
         function calculate() {
             let subtotal = 0;
             document.querySelectorAll('#item-list tr').forEach(row => {
@@ -112,64 +138,16 @@
             });
             document.getElementById('grandTotal').innerText = Math.round(subtotal * 1.05).toLocaleString();
         }
+
         async function saveToNotion() {
             const saveBtn = document.getElementById('saveBtn');
-            const originalText = saveBtn.innerText;
-    
-            // 1. 檢查必填欄位
             const clientName = document.getElementById('clientName').value;
-            if (!clientName) {
-                alert("請輸入客戶公司名稱後再儲存");
-                return;
-            }
+            if (!clientName) { alert("請輸入客戶公司名稱後再儲存"); return; }
 
-            saveBtn.innerText = "正在傳送至 Notion...";
+            saveBtn.innerText = "連動中...";
             saveBtn.disabled = true;
 
-            // 2. 準備資料 (加上 console.log 方便你檢查)
             const data = {
                 company: clientName,
                 date: document.getElementById('currentDate').value,
-                total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
-                id: document.getElementById('quoteId').value,
-                note: document.getElementById('quoteNote').value
-            };
-    
-            console.log("準備傳送的資料：", data);
-
-            const webhookUrl = "https://eo2ddbgd6zenms9.m.pipedream.net"; // <--- 請確認這裡有換成正確網址
-
-            try {
-                // 3. 發送請求 (恢復標準模式，刪除 no-cors)
-                const response = await fetch(webhookUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            });
-
-                console.log("伺服器回應狀態：", response.status);
-
-                if (response.ok) {
-                    alert('✅ 儲存成功！請檢查 Notion 資料庫。');
-                } else {
-                    const errorText = await response.text();
-                    console.error("錯誤內容：", errorText);
-                    alert('❌ 儲存失敗，伺服器回傳錯誤。請查看控制台 (F12)。');
-                }
-            } catch (error) {
-            console.error('網路請求發生錯誤：', error);
-            alert('❌ 無法連線至伺服器，請檢查網路或 Webhook 網址是否正確。');
-        } finally {
-            saveBtn.innerText = originalText;
-            saveBtn.disabled = false;
-        }
-    }
-
-        
-    </script>
-</body>
-
-</html>
-
+                total: parseInt(
