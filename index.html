@@ -112,12 +112,9 @@
         const canvas = document.getElementById('signature-pad');
         const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255, 255, 255, 0)', penColor: 'rgb(0, 0, 0)' });
 
-        // 生成隨機編號 manta-YYYYMMDD-XXXX
         function generateMantaId() {
             const now = new Date();
-            const dateStr = now.getFullYear() + 
-                            String(now.getMonth() + 1).padStart(2, '0') + 
-                            String(now.getDate()).padStart(2, '0');
+            const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
             const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
             return `manta-${dateStr}-${randomStr}`;
         }
@@ -125,9 +122,11 @@
         function resizeCanvas() {
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
             const container = canvas.parentElement;
-            canvas.width = container.offsetWidth * ratio;
-            canvas.height = container.offsetHeight * ratio;
-            canvas.getContext("2d").scale(ratio, ratio);
+            if (container) {
+                canvas.width = container.offsetWidth * ratio;
+                canvas.height = container.offsetHeight * ratio;
+                canvas.getContext("2d").scale(ratio, ratio);
+            }
         }
 
         window.onload = function() {
@@ -135,7 +134,6 @@
             resizeCanvas();
             const p = new URLSearchParams(window.location.search);
             
-            // 處理項目還原
             if (p.has('items')) {
                 try {
                     const itemsData = JSON.parse(decodeURIComponent(p.get('items')));
@@ -143,12 +141,8 @@
                 } catch (e) { addItem(); }
             } else { addItem(); }
             
-            // 處理編號：如果是帶參數進來的就用帶入的，否則自動生成
-            if(p.get('i')) {
-                document.getElementById('quoteId').value = p.get('i');
-            } else {
-                document.getElementById('quoteId').value = generateMantaId();
-            }
+            if(p.get('i')) document.getElementById('quoteId').value = p.get('i');
+            else document.getElementById('quoteId').value = generateMantaId();
 
             if(p.get('c')) document.getElementById('clientName').value = p.get('c');
             if(p.get('t')) document.getElementById('clientTax').value = p.get('t');
@@ -206,7 +200,7 @@
                 items: JSON.stringify(items),
                 lock: 1
             });
-            navigator.clipboard.writeText(`${window.location.origin + window.location.pathname}?${p.toString()}`).then(() => alert("連結已複製！編號已固定。"));
+            navigator.clipboard.writeText(`${window.location.origin + window.location.pathname}?${p.toString()}`).then(() => alert("連結已複製！"));
         }
 
         function saveAsImage(e) {
@@ -235,21 +229,49 @@
         function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
         function handlePrint() { document.title = document.getElementById('quoteId').value; window.print(); }
 
+        // --- 核心更新：儲存至 Notion (包含報價細項) ---
         async function saveToNotion() {
             const btn = document.getElementById('saveBtn');
-            btn.innerText = "儲存中..."; btn.disabled = true;
+            const items = [];
+            
+            // 抓取所有報價項目
+            document.querySelectorAll('#item-list tr').forEach(row => {
+                items.push({
+                    name: row.querySelector('.name-input').value,
+                    quantity: row.querySelector('.qty-input').value,
+                    price: row.querySelector('.price-input').value,
+                    subtotal: row.querySelector('.total-cell').innerText
+                });
+            });
+
+            btn.innerText = "儲存中..."; 
+            btn.disabled = true;
+            
+            const payload = {
+                company: document.getElementById('clientName').value,
+                taxId: document.getElementById('clientTax').value,
+                id: document.getElementById('quoteId').value,
+                date: document.getElementById('currentDate').value,
+                total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
+                taxMode: document.getElementById('isTaxInclusive').value,
+                note: document.getElementById('quoteNote').value,
+                items: items // 傳送項目 Array
+            };
+
             try {
                 const res = await fetch("https://eo2ddbgd6zenms9.m.pipedream.net", {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        company: document.getElementById('clientName').value,
-                        total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
-                        id: document.getElementById('quoteId').value,
-                        taxMode: document.getElementById('isTaxInclusive').value
-                    })
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
-                if (res.ok) alert('✅ 已儲存至 Notion！');
-            } catch (e) { alert('❌ 失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
+                if (res.ok) alert('✅ 已成功儲存至 Notion！');
+                else alert('❌ 儲存失敗，請檢查 Pipedream 設定');
+            } catch (e) { 
+                alert('❌ 網路錯誤，請稍後再試'); 
+            } finally { 
+                btn.innerText = "儲存至 Notion"; 
+                btn.disabled = false; 
+            }
         }
     </script>
 </body>
