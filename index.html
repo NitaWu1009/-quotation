@@ -192,75 +192,76 @@
             calculate();
         }
 
-        // --- is.gd 無廣告自動縮址 ---
-        async function generateShortLink() {
-            const btn = document.getElementById('linkBtn');
-            btn.innerText = "生成中..."; btn.disabled = true;
 
-            const items = [];
-            document.querySelectorAll('#item-list tr').forEach(row => {
-                items.push({ n: row.querySelector('.name-input').value, q: row.querySelector('.qty-input').value, p: row.querySelector('.price-input').value });
-            });
+        // 生成連結：現在直接複製長連結，縮址交給 Pipedream 後台處理
+    function generateShortLink() {
+    const items = [];
+    document.querySelectorAll('#item-list tr').forEach(row => {
+        items.push({ n: row.querySelector('.name-input').value, q: row.querySelector('.qty-input').value, p: row.querySelector('.price-input').value });
+    });
 
-            const p = new URLSearchParams({
-                c: document.getElementById('clientName').value,
-                t: document.getElementById('clientTax').value,
-                i: document.getElementById('quoteId').value,
-                n: document.getElementById('quoteNote').value,
-                tx: document.getElementById('isTaxInclusive').value,
-                items: JSON.stringify(items),
-                lock: 1
-            });
+    const p = new URLSearchParams({
+        c: document.getElementById('clientName').value,
+        t: document.getElementById('clientTax').value,
+        i: document.getElementById('quoteId').value,
+        n: document.getElementById('quoteNote').value,
+        tx: document.getElementById('isTaxInclusive').value,
+        items: JSON.stringify(items),
+        lock: 1
+    });
 
-            const longUrl = `${window.location.origin + window.location.pathname}?${p.toString()}`;
-            
-            try {
-                const res = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
-                if (res.ok) {
-                    const shortUrl = await res.text();
-                    document.getElementById('shortUrl').value = shortUrl;
-                    navigator.clipboard.writeText(shortUrl);
-                    alert("✨ 縮址連結已複製 (is.gd)：\n" + shortUrl);
-                } else { throw new Error(); }
-            } catch (e) {
-                navigator.clipboard.writeText(longUrl);
-                alert("縮址失敗，已複製原始長連結。");
-            } finally {
-                btn.innerText = "生成縮址連結"; btn.disabled = false;
-            }
-        }
+    const longUrl = `${window.location.origin + window.location.pathname}?${p.toString()}`;
+    
+    // 雖然是長網址，但先複製起來備用
+    navigator.clipboard.writeText(longUrl);
+    alert("✨ 報價單長連結已複製！\n建議點擊「儲存至 Notion」，系統將自動產生短網址存入資料庫。");
+}
 
-        async function saveToNotion() {
-            const btn = document.getElementById('saveBtn');
-            const items = [];
-            document.querySelectorAll('#item-list tr').forEach(row => {
-                items.push({ 
-                    name: row.querySelector('.name-input').value, 
-                    quantity: row.querySelector('.qty-input').value, 
-                    price: row.querySelector('.price-input').value, 
-                    subtotal: row.querySelector('.total-cell').innerText 
-                });
-            });
-            btn.innerText = "儲存中..."; btn.disabled = true;
-            
-            const payload = {
-                company: document.getElementById('clientName').value,
-                taxId: document.getElementById('clientTax').value,
-                id: document.getElementById('quoteId').value,
-                shortUrl: document.getElementById('shortUrl').value,
-                total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
-                taxMode: document.getElementById('isTaxInclusive').value,
-                items: items 
-            };
-            try {
-                const res = await fetch("https://eo2ddbgd6zenms9.m.pipedream.net", { 
-                    method: 'POST', 
-                    headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify(payload) 
-                });
-                if (res.ok) alert('✅ 已同步至 Notion！');
-            } catch (e) { alert('❌ 失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
-        }
+// 儲存至 Notion：傳送長連結，讓 Pipedream 去處理縮址
+async function saveToNotion() {
+    const btn = document.getElementById('saveBtn');
+    const items = [];
+    document.querySelectorAll('#item-list tr').forEach(row => {
+        items.push({ 
+            name: row.querySelector('.name-input').value, 
+            quantity: row.querySelector('.qty-input').value, 
+            price: row.querySelector('.price-input').value, 
+            subtotal: row.querySelector('.total-cell').innerText 
+        });
+    });
+
+    const p = new URLSearchParams({
+        c: document.getElementById('clientName').value,
+        t: document.getElementById('clientTax').value,
+        i: document.getElementById('quoteId').value,
+        n: document.getElementById('quoteNote').value,
+        tx: document.getElementById('isTaxInclusive').value,
+        items: JSON.stringify(items),
+        lock: 1
+    });
+
+    const longUrl = `${window.location.origin + window.location.pathname}?${p.toString()}`;
+
+    btn.innerText = "同步中..."; btn.disabled = true;
+    
+    const payload = {
+        company: document.getElementById('clientName').value,
+        id: document.getElementById('quoteId').value,
+        total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
+        taxMode: document.getElementById('isTaxInclusive').value,
+        items: items,
+        fullUrl: longUrl // 傳送長網址給 Pipedream
+    };
+
+    try {
+        const res = await fetch("https://eo2ddbgd6zenms9.m.pipedream.net", { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(payload) 
+        });
+        if (res.ok) alert('✅ 已同步至 Notion！短網址已在後台產生。');
+    } catch (e) { alert('❌ 失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
+}
 
         function saveAsImage(e) {
             const btn = e.target; btn.innerText = "產生中..."; btn.disabled = true;
@@ -289,3 +290,4 @@
     </script>
 </body>
 </html>
+
