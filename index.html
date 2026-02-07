@@ -11,18 +11,13 @@
         body { font-size: 0.95rem; } 
         input, textarea { font-size: 0.9rem; border-radius: 4px; }
         #quoteNote { font-size: 0.85rem; line-height: 1.5; overflow-y: hidden; resize: none; min-height: 80px; width: 100%; display: block; }
-        
-        /* 簽名板樣式 */
         .signature-wrapper { border: 1px solid #e2e8f0; background-color: #f8fafc; border-radius: 0.375rem; position: relative; width: 100%; height: 160px; }
         canvas { width: 100%; height: 100%; touch-action: none; }
-
-        /* 手機版 RWD 調整 */
         @media (max-width: 640px) {
             .invoice-container { padding: 1.5rem !important; }
             .signature-grid { grid-template-columns: 1fr !important; }
-            .signature-wrapper { height: 200px; } /* 手機版簽名區加高，方便手指書寫 */
+            .signature-wrapper { height: 200px; }
         }
-
         @media print {
             @page { size: A4; margin: 0.8cm; }
             html, body { zoom: 92%; height: auto; }
@@ -43,7 +38,7 @@
             </div>
             <div class="text-left md:text-right space-y-1 text-sm mt-4 md:mt-0">
                 <p class="text-gray-600">報價日期：<input type="date" id="currentDate" class="outline-none border-b border-gray-200"></p>
-                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" placeholder="QT-20260204" class="outline-none md:text-right border-b border-gray-200 w-32"></p>
+                <p class="text-gray-600">報價編號：<input type="text" id="quoteId" readonly class="outline-none md:text-right border-b border-gray-200 w-48 text-blue-700 font-medium" placeholder="自動生成中..."></p>
             </div>
         </div>
 
@@ -51,8 +46,6 @@
             <h3 class="font-bold text-gray-700 mb-2 border-l-4 border-blue-500 pl-2 text-base">客戶資訊</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                 <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">公司名稱:</span><input type="text" id="clientName" class="w-full border-b border-gray-300 px-2"></div>
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">官方網域:</span><input type="text" id="clientWeb" class="w-full border-b border-gray-300 px-2"></div>
-                <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">連絡電話:</span><input type="text" id="clientPhone" class="w-full border-b border-gray-300 px-2"></div>
                 <div class="flex items-center"><span class="w-20 text-gray-500 flex-shrink-0">統一編號:</span><input type="text" id="clientTax" class="w-full border-b border-gray-300 px-2"></div>
             </div>
         </div>
@@ -76,8 +69,15 @@
         </button>
 
         <div class="flex justify-end mb-6 text-right">
-            <div class="w-full md:w-64 border-t-2 border-gray-800 pt-2">
-                <span class="text-sm text-gray-600 block">總計金額 (含稅)</span>
+            <div class="w-full md:w-64 border-t-2 border-gray-800 pt-2 space-y-1">
+                <div class="no-print flex items-center justify-end gap-2 mb-2" id="taxSwitch">
+                    <span class="text-xs text-gray-500">稅制選擇：</span>
+                    <select id="isTaxInclusive" onchange="calculate()" class="text-xs border border-gray-300 rounded px-1 py-1 outline-none">
+                        <option value="yes">含稅 (5%)</option>
+                        <option value="no">未稅</option>
+                    </select>
+                </div>
+                <span class="text-sm text-gray-600 block"><span id="taxStatusLabel">總計金額 (含稅)</span></span>
                 <span id="grandTotal" class="font-bold text-2xl text-blue-700">0</span>
             </div>
         </div>
@@ -102,15 +102,25 @@
     </div>
 
     <div class="max-w-4xl mx-auto mt-6 flex gap-3 justify-center no-print flex-wrap px-4 pb-10">
-        <button onclick="handlePrint()" class="bg-gray-800 text-white font-bold py-3 px-6 rounded shadow text-sm">下載 PDF</button>
-        <button onclick="saveAsImage()" class="bg-orange-500 text-white font-bold py-3 px-6 rounded shadow text-sm">存為 PNG (回傳用)</button>
-        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded shadow text-sm">儲存至 Notion</button>
-        <button onclick="generateClientLink()" id="linkBtn" class="bg-green-600 text-white font-bold py-3 px-6 rounded shadow text-sm">生成客戶連結</button>
+        <button onclick="handlePrint()" class="bg-gray-800 text-white font-bold py-3 px-6 rounded shadow text-sm">PDF</button>
+        <button onclick="saveAsImage(event)" class="bg-orange-500 text-white font-bold py-3 px-6 rounded shadow text-sm">PNG (回傳)</button>
+        <button onclick="saveToNotion()" id="saveBtn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded shadow text-sm">儲存 Notion</button>
+        <button onclick="generateClientLink()" id="linkBtn" class="bg-green-600 text-white font-bold py-3 px-6 rounded shadow text-sm">生成連結</button>
     </div>
 
     <script>
         const canvas = document.getElementById('signature-pad');
         const signaturePad = new SignaturePad(canvas, { backgroundColor: 'rgba(255, 255, 255, 0)', penColor: 'rgb(0, 0, 0)' });
+
+        // 生成隨機編號 manta-YYYYMMDD-XXXX
+        function generateMantaId() {
+            const now = new Date();
+            const dateStr = now.getFullYear() + 
+                            String(now.getMonth() + 1).padStart(2, '0') + 
+                            String(now.getDate()).padStart(2, '0');
+            const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+            return `manta-${dateStr}-${randomStr}`;
+        }
 
         function resizeCanvas() {
             const ratio = Math.max(window.devicePixelRatio || 1, 1);
@@ -118,7 +128,6 @@
             canvas.width = container.offsetWidth * ratio;
             canvas.height = container.offsetHeight * ratio;
             canvas.getContext("2d").scale(ratio, ratio);
-            signaturePad.clear();
         }
 
         window.onload = function() {
@@ -126,93 +135,37 @@
             resizeCanvas();
             const p = new URLSearchParams(window.location.search);
             
-            // 還原資料
+            // 處理項目還原
             if (p.has('items')) {
                 try {
                     const itemsData = JSON.parse(decodeURIComponent(p.get('items')));
                     itemsData.forEach(item => addItem(item.n, item.q, item.p));
                 } catch (e) { addItem(); }
             } else { addItem(); }
-            if(p.get('c')) document.getElementById('clientName').value = p.get('c');
-            if(p.get('w')) document.getElementById('clientWeb').value = p.get('w');
-            if(p.get('p')) document.getElementById('clientPhone').value = p.get('p');
-            if(p.get('t')) document.getElementById('clientTax').value = p.get('t');
-            if(p.get('i')) document.getElementById('quoteId').value = p.get('i');
-            if(p.get('n')) { document.getElementById('quoteNote').value = p.get('n'); autoHeight(document.getElementById('quoteNote')); }
             
+            // 處理編號：如果是帶參數進來的就用帶入的，否則自動生成
+            if(p.get('i')) {
+                document.getElementById('quoteId').value = p.get('i');
+            } else {
+                document.getElementById('quoteId').value = generateMantaId();
+            }
+
+            if(p.get('c')) document.getElementById('clientName').value = p.get('c');
+            if(p.get('t')) document.getElementById('clientTax').value = p.get('t');
+            if(p.get('n')) { document.getElementById('quoteNote').value = p.get('n'); autoHeight(document.getElementById('quoteNote')); }
+            if(p.get('tx')) document.getElementById('isTaxInclusive').value = p.get('tx');
+
             calculate();
 
-            // 客戶端判定 (lock=1)
             if (p.get('lock') === '1') {
-                document.querySelectorAll('input, textarea').forEach(el => el.readOnly = true);
+                document.querySelectorAll('input, textarea, select').forEach(el => el.disabled = true);
                 document.getElementById('addBtn').style.display = 'none';
                 document.getElementById('linkBtn').style.display = 'none';
-                document.getElementById('saveBtn').style.display = 'none'; // 客戶端隱藏 Notion 按鈕
+                document.getElementById('saveBtn').style.display = 'none';
+                document.getElementById('taxSwitch').style.display = 'none';
                 document.querySelectorAll('#item-list button').forEach(b => b.style.display='none');
             }
         };
-
-        function saveAsImage() {
-    const name = document.getElementById('clientName').value || "客戶";
-    const date = document.getElementById('currentDate').value;
-    const id = document.getElementById('quoteId').value || "無編號";
-    const fileName = `${name}-${date}-${id}.png`;
-    
-    // 顯示讀取中，避免手機版沒反應
-    const btn = event.target;
-    const originalText = btn.innerText;
-    btn.innerText = "產生圖片中...";
-    btn.disabled = true;
-
-    // 針對手機優化設定
-    html2canvas(document.getElementById('invoice'), { 
-        scale: 2,           // 2 倍解析度，兼顧清晰度與手機性能
-        useCORS: true,      // 允許跨域圖片
-        logging: false,     // 關閉日誌
-        backgroundColor: "#FFFFFF" // 確保背景是白色而非透明
-    }).then(canvas => {
-        try {
-            // 嘗試自動下載
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = canvas.toDataURL("image/png");
-            
-            // 判斷是否為 iOS 或某些行動裝置
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-            
-            if (isMobile) {
-                // 手機版：直接在新分頁開啟圖片，讓客戶長按圖片儲存
-                const imgData = canvas.toDataURL("image/png");
-                const newTab = window.open();
-                if (newTab) {
-                    newTab.document.write(`<img src="${imgData}" style="width:100%" />`);
-                    newTab.document.title = fileName;
-                    alert("✅ 圖片已產生！請在開啟的新視窗中「長按圖片」選擇「儲存圖片」，再回傳即可。");
-                } else {
-                    alert("❌ 偵測到彈出視窗被阻擋，請手動允許或嘗試列印 PDF。");
-                }
-            } else {
-                // 電腦版：直接下載
-                link.click();
-            }
-        } catch (err) {
-            console.error("PNG 產生失敗:", err);
-            alert("❌ 圖片產生失敗，建議改用「下載 PDF」功能。");
-        } finally {
-            btn.innerText = originalText;
-            btn.disabled = false;
-        }
-    });
-}
-
-        function addItem(name = "", qty = 1, price = 0) {
-            const list = document.getElementById('item-list');
-            const row = document.createElement('tr');
-            row.className = "border-b border-gray-100";
-            row.innerHTML = `<td class="p-2"><input type="text" value="${name}" class="name-input w-full outline-none bg-transparent"></td><td class="p-2 text-center"><input type="number" value="${qty}" class="qty-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center"><input type="number" value="${price}" class="price-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center font-bold total-cell text-gray-700">0</td><td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>`;
-            list.appendChild(row);
-            calculate();
-        }
 
         function calculate() {
             let s = 0;
@@ -223,7 +176,20 @@
                 r.querySelector('.total-cell').innerText = t.toLocaleString();
                 s += t;
             });
-            document.getElementById('grandTotal').innerText = Math.round(s * 1.05).toLocaleString();
+            const taxMode = document.getElementById('isTaxInclusive').value;
+            const label = document.getElementById('taxStatusLabel');
+            let finalTotal = (taxMode === 'yes') ? Math.round(s * 1.05) : s;
+            label.innerText = (taxMode === 'yes') ? "總計金額 (含稅)" : "總計金額 (未稅)";
+            document.getElementById('grandTotal').innerText = finalTotal.toLocaleString();
+        }
+
+        function addItem(name = "", qty = 1, price = 0) {
+            const list = document.getElementById('item-list');
+            const row = document.createElement('tr');
+            row.className = "border-b border-gray-100";
+            row.innerHTML = `<td class="p-2"><input type="text" value="${name}" class="name-input w-full outline-none bg-transparent"></td><td class="p-2 text-center"><input type="number" value="${qty}" class="qty-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center"><input type="number" value="${price}" class="price-input w-full text-center outline-none bg-transparent" oninput="calculate()"></td><td class="p-2 text-center font-bold total-cell text-gray-700">0</td><td class="p-2 no-print text-right"><button onclick="removeItem(this)" class="text-red-400 font-bold">✕</button></td>`;
+            list.appendChild(row);
+            calculate();
         }
 
         function generateClientLink() {
@@ -233,24 +199,41 @@
             });
             const p = new URLSearchParams({
                 c: document.getElementById('clientName').value,
-                w: document.getElementById('clientWeb').value,
-                p: document.getElementById('clientPhone').value,
                 t: document.getElementById('clientTax').value,
                 i: document.getElementById('quoteId').value,
                 n: document.getElementById('quoteNote').value,
+                tx: document.getElementById('isTaxInclusive').value,
                 items: JSON.stringify(items),
                 lock: 1
             });
-            navigator.clipboard.writeText(`${window.location.origin + window.location.pathname}?${p.toString()}`).then(() => alert("專屬連結已複製！傳給客戶後，他們無法修改內容，且無法存入你的 Notion。"));
+            navigator.clipboard.writeText(`${window.location.origin + window.location.pathname}?${p.toString()}`).then(() => alert("連結已複製！編號已固定。"));
+        }
+
+        function saveAsImage(e) {
+            const btn = e.target;
+            const originalText = btn.innerText;
+            btn.innerText = "產生中...";
+            btn.disabled = true;
+            html2canvas(document.getElementById('invoice'), { scale: 2, backgroundColor: "#FFFFFF" }).then(canvas => {
+                const imgData = canvas.toDataURL("image/png");
+                if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                    const newTab = window.open();
+                    newTab.document.write(`<img src="${imgData}" style="width:100%" />`);
+                    alert("✅ 請長按圖片儲存並回傳。");
+                } else {
+                    const link = document.createElement('a');
+                    link.download = `${document.getElementById('quoteId').value}.png`;
+                    link.href = imgData;
+                    link.click();
+                }
+                btn.innerText = originalText; btn.disabled = false;
+            });
         }
 
         function clearSignature() { signaturePad.clear(); }
         function removeItem(btn) { btn.closest('tr').remove(); calculate(); }
         function autoHeight(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
-        function handlePrint() { 
-            document.title = `${document.getElementById('clientName').value}-${document.getElementById('currentDate').value}-${document.getElementById('quoteId').value}`;
-            window.print(); 
-        }
+        function handlePrint() { document.title = document.getElementById('quoteId').value; window.print(); }
 
         async function saveToNotion() {
             const btn = document.getElementById('saveBtn');
@@ -260,16 +243,14 @@
                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         company: document.getElementById('clientName').value,
-                        date: document.getElementById('currentDate').value,
                         total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
                         id: document.getElementById('quoteId').value,
-                        note: document.getElementById('quoteNote').value
+                        taxMode: document.getElementById('isTaxInclusive').value
                     })
                 });
-                if (res.ok) alert('✅ 已成功儲存至你的 Notion！');
-            } catch (e) { alert('❌ 儲存失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
+                if (res.ok) alert('✅ 已儲存至 Notion！');
+            } catch (e) { alert('❌ 失敗'); } finally { btn.innerText = "儲存至 Notion"; btn.disabled = false; }
         }
     </script>
 </body>
 </html>
-
