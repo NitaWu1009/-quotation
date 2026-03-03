@@ -290,6 +290,8 @@
         taxId: document.getElementById('clientTax').value,
         id: document.getElementById('quoteId').value,
         shortUrl: shortUrlField.value, // 這時一定會有值了
+        date: document.getElementById('currentDate').value,
+        note: document.getElementById('quoteNote').value,
         total: parseInt(document.getElementById('grandTotal').innerText.replace(/,/g, '')),
         taxMode: document.getElementById('isTaxInclusive').value,
         items: items 
@@ -342,4 +344,5 @@
     </script>
 </body>
 </html>
+
 
